@@ -132,7 +132,7 @@ def update_counter_label():
 # ------------------ 界面搭建 ------------------
 root = tk.Tk()
 root.title("🍅 番茄钟")
-root.geometry("380x420")
+root.geometry("560x500")
 root.resizable(False, False)
 root.configure(bg=BG_COLOR)
 
