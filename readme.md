@@ -1,6 +1,3 @@
-以下是适合你项目的 `README.md` 文件，直接放在 `pomodoro/` 根目录即可。
-
----
 
 ```markdown
 # 🍅 Pomodoro Timer
