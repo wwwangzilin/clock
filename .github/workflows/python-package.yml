@@ -1,0 +1,40 @@
+# This workflow will install Python dependencies, run tests and lint with a variety of Python versions此工作流将安装 Python 依赖项，并使用多种 Python 版本运行测试和代码检查
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python有关更多信息，请参见：https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python
+
+name   名称：Python 包: Python package
+
+on   ::
+  push   推动::
+    branches   branches: [ "main"   "main"   "main"   "main"   "main"   "main"   "main"   "main"   "main"   "main"   "main"   "main"   "main"   "main"   "main"   "main"   "main"   "main"   "main"   "main"   "main"   "main"   "main"   "main"   "main" ]: [ "main" ]
+  pull_request:
+    branches   branches: [ "main"   "main"   "main"   "main"   "main"   "main"   "main"   "main"   "main"   "main"   "main"   "main"   "main"   "main"   "main"   "main"   "main"   "main"   "main"   "main"   "main"   "main"   "main"   "main"   "main" ]: [ "main" ]
+
+jobs   工作::
+  build   构建::
+
+    runs-on   运行于：ubuntu-latest: ubuntu-latest
+    strategy   策略::
+      fail-fast   快速失败:错误: false
+      matrix   矩阵::
+        python-versionpython3.9", "3.10", "3.11"]: ["3.9", "3.10", "3.11"]
+
+    steps   步骤::
+    - - 使用：actions/checkout@v4uses: actions/checkout@v4
+    - - name： 设置 Python ${{ matrix.python-version }}name: Set up Python ${{ matrix.python-version }}
+ 使用：actions/setup-python@v3     uses: actions/setup-python@v3
+      with:
+        python-version   python版本: ${{ matrix.python-version }}
+    - name   名字: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install flake8 pytest
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi如果存在 requirements.txt 文件，则执行 pip install -r requirements.txt。
+    - name   名字: Lint with flake8
+      run   运行: |
+        # stop the build if there are Python syntax errors or undefined names
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+    - name   名字: Test with pytest
+      run   运行: |
+        pytest
