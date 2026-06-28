@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
-from ui.styles import BG_COLOR, TEXT_DARK, TEXT_LIGHT, BTN_START_BG, BTN_RESET_BG
+import sv_ttk
+from ui.styles import BG_COLOR, TEXT_PRIMARY, TEXT_SECONDARY, ACCENT, CARD_COLOR
 
 class SettingsWindow(tk.Toplevel):
     def __init__(self, parent, timer, on_apply):
@@ -8,45 +9,56 @@ class SettingsWindow(tk.Toplevel):
         self.title("系统设置")
         self.configure(bg=BG_COLOR)
         self.resizable(False, False)
-        self.geometry("300x220")
+        self.geometry("320x260")
+        sv_ttk.set_theme("light")
         self._center(parent)
 
         self.timer = timer
         self.on_apply = on_apply
 
+        # 内容容器
+        container = tk.Frame(self, bg=CARD_COLOR,
+                             highlightbackground="#e0e0e0", highlightthickness=1)
+        container.pack(padx=20, pady=(16, 8), fill="both", expand=True)
+
         # 工作时长
         self.work_var = tk.IntVar(value=timer.work_min)
-        self._add_scale("工作时长 (分)", self.work_var, 1, 60)
+        self._add_row(container, "工作时长 (分)", self.work_var, 1, 120)
 
         # 短休息
         self.short_var = tk.IntVar(value=timer.short_break)
-        self._add_scale("短休息 (分)", self.short_var, 1, 30)
+        self._add_row(container, "短休息 (分)", self.short_var, 1, 30)
 
         # 长休息
         self.long_var = tk.IntVar(value=timer.long_break)
-        self._add_scale("长休息 (分)", self.long_var, 1, 60)
+        self._add_row(container, "长休息 (分)", self.long_var, 1, 60)
 
         # 按钮
         btn_frame = tk.Frame(self, bg=BG_COLOR)
-        btn_frame.pack(pady=10)
-        tk.Button(btn_frame, text="应用", font=("Helvetica", 11),
-                  bg=BTN_START_BG, fg=TEXT_DARK, relief="flat",
-                  command=self._apply).pack(side="left", padx=5)
-        tk.Button(btn_frame, text="取消", font=("Helvetica", 11),
-                  bg=BTN_RESET_BG, fg="white", relief="flat",
-                  command=self.destroy).pack(side="left", padx=5)
+        btn_frame.pack(pady=(4, 16))
+        ttk.Button(btn_frame, text="✓ 应用", style="Primary.TButton",
+                   command=self._apply).pack(side="left", padx=4)
+        ttk.Button(btn_frame, text="✕ 取消", style="Secondary.TButton",
+                   command=self.destroy).pack(side="left", padx=4)
 
-    def _add_scale(self, label, var, from_, to):
-        frame = tk.Frame(self, bg=BG_COLOR)
-        frame.pack(pady=5, padx=20, fill="x")
-        tk.Label(frame, text=label, font=("Helvetica", 11), bg=BG_COLOR, fg=TEXT_DARK).pack(side="left")
-        ttk.Scale(frame, from_=from_, to=to, variable=var, orient="horizontal", length=150).pack(side="right")
+    def _add_row(self, parent, label, var, from_, to):
+        frame = tk.Frame(parent, bg=CARD_COLOR)
+        frame.pack(pady=8, padx=16, fill="x")
+        tk.Label(frame, text=label, font=("Segoe UI", 11),
+                 bg=CARD_COLOR, fg=TEXT_PRIMARY).pack(side="left")
+        # Spinbox 替代 Scale，更精确
+        sb = ttk.Spinbox(
+            frame, from_=from_, to=to,
+            textvariable=var, width=4,
+            font=("Segoe UI", 11),
+        )
+        sb.pack(side="right")
 
     def _apply(self):
         self.timer.adjust_times(work=self.work_var.get(),
                                 short=self.short_var.get(),
                                 long=self.long_var.get())
-        self.on_apply()  # 通知主窗口刷新
+        self.on_apply()
         self.destroy()
 
     def _center(self, parent):

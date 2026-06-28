@@ -1,64 +1,87 @@
 import tkinter as tk
+from tkinter import ttk
 from ui.styles import (
-    SETTING_BG, TEXT_LIGHT, TEXT_DARK, CARD_COLOR, WORK_COLOR, CARD_RADIUS, BG_COLOR
+    TEXT_SECONDARY, TEXT_PRIMARY, CARD_COLOR, BG_COLOR, ACCENT
 )
 
-class RoundedCard(tk.Canvas):
-    """圆角卡片，用于显示计时器数字"""
-    def __init__(self, parent, width, height, radius=CARD_RADIUS, **kwargs):
-        super().__init__(parent, bg=BG_COLOR, height=height, highlightthickness=0, **kwargs)
-        self.radius = radius
-        self.card_bg = None
-        self.timer_text_id = None
-        self.bind("<Configure>", self._on_resize)
+class TimerCard(tk.Frame):
+    """Windows 11 风格的计时卡片（白色圆角卡片，显示大号时间）"""
+    def __init__(self, parent, **kwargs):
+        super().__init__(parent, bg=CARD_COLOR, **kwargs)
+        self._create_shadow()
 
-    def set_text(self, text, color=WORK_COLOR):
-        if self.timer_text_id is None:
-            self.timer_text_id = self.create_text(
-                self.winfo_reqwidth() // 2, self.winfo_reqheight() // 2,
-                text=text, font=("Helvetica", 58, "bold"), fill=color)
-        else:
-            self.itemconfig(self.timer_text_id, text=text, fill=color)
+        # 时间标签
+        self.time_label = tk.Label(
+            self,
+            text="25:00",
+            font=("Segoe UI", 64, "bold"),
+            fg=ACCENT,
+            bg=CARD_COLOR,
+        )
+        self.time_label.pack(expand=True, fill="both", pady=(40, 10))
 
-    def _on_resize(self, event):
-        self.delete("card_bg")
-        w, h = event.width, event.height
-        r = self.radius
-        self.create_polygon(
-            r, 4, w - r, 4, w - 4, r, w - 4, h - r,
-            w - r, h, r, h, 4, h - r, 4, r,
-            fill=CARD_COLOR, outline="#e0e0e0", smooth=True, tags="card_bg")
-        if self.timer_text_id:
-            self.coords(self.timer_text_id, w // 2, h // 2)
-            self.tag_raise(self.timer_text_id)
+        # 阶段标签
+        self.status_label = tk.Label(
+            self,
+            text="点击下方按钮开始专注",
+            font=("Segoe UI", 11),
+            fg=TEXT_SECONDARY,
+            bg=CARD_COLOR,
+        )
+        self.status_label.pack(pady=(0, 30))
+
+    def _create_shadow(self):
+        """用边框模拟 Windows 11 的卡片阴影效果"""
+        self.configure(highlightbackground="#e0e0e0", highlightthickness=1, highlightcolor="#e0e0e0")
+
+    def set_time(self, text, color=ACCENT):
+        self.time_label.config(text=text, fg=color)
+
+    def set_status(self, text):
+        self.status_label.config(text=text)
+
 
 class TimeAdjuster(tk.Frame):
-    """时长调节器：标签 + [-] 数字 [+]"""
+    """Windows 11 风格的时间调节器"""
     def __init__(self, parent, label_text, var, time_type, on_adjust, **kwargs):
-        super().__init__(parent, bg=SETTING_BG, **kwargs)
+        super().__init__(parent, bg=BG_COLOR, **kwargs)
         self.var = var
         self.time_type = time_type
         self.on_adjust = on_adjust
 
-        lbl = tk.Label(self, text=label_text, font=("Helvetica", 9), fg=TEXT_LIGHT, bg=SETTING_BG)
-        lbl.pack()
+        lbl = tk.Label(
+            self, text=label_text,
+            font=("Segoe UI", 9), fg=TEXT_SECONDARY, bg=BG_COLOR
+        )
+        lbl.pack(anchor="center")
 
-        inner = tk.Frame(self, bg=SETTING_BG)
-        inner.pack()
+        inner = tk.Frame(self, bg=BG_COLOR)
+        inner.pack(anchor="center")
 
-        btn_minus = tk.Button(inner, text="−", font=("Helvetica", 10, "bold"),
-                              width=2, relief="flat", bg="#e0d5c1", activebackground="#d4c9b5",
-                              command=lambda: self._adjust(-1))
-        btn_minus.pack(side="left")
+        btn_minus = tk.Button(
+            inner, text="−", font=("Segoe UI", 12, "bold"),
+            width=2, relief="flat", bg="#e8e8e8", fg=TEXT_PRIMARY,
+            activebackground="#d0d0d0", cursor="hand2",
+            bd=0, padx=8, pady=2,
+            command=lambda: self._adjust(-1)
+        )
+        btn_minus.pack(side="left", padx=2)
 
-        val_label = tk.Label(inner, textvariable=var, font=("Helvetica", 12, "bold"),
-                             fg=TEXT_DARK, bg=SETTING_BG, width=3)
-        val_label.pack(side="left")
+        val_label = tk.Label(
+            inner, textvariable=var,
+            font=("Segoe UI", 14, "bold"),
+            fg=TEXT_PRIMARY, bg=BG_COLOR, width=3
+        )
+        val_label.pack(side="left", padx=4)
 
-        btn_plus = tk.Button(inner, text="+", font=("Helvetica", 10, "bold"),
-                             width=2, relief="flat", bg="#e0d5c1", activebackground="#d4c9b5",
-                             command=lambda: self._adjust(1))
-        btn_plus.pack(side="left")
+        btn_plus = tk.Button(
+            inner, text="+", font=("Segoe UI", 12, "bold"),
+            width=2, relief="flat", bg="#e8e8e8", fg=TEXT_PRIMARY,
+            activebackground="#d0d0d0", cursor="hand2",
+            bd=0, padx=8, pady=2,
+            command=lambda: self._adjust(1)
+        )
+        btn_plus.pack(side="left", padx=2)
 
     def _adjust(self, delta):
         new_val = self.var.get() + delta

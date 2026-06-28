@@ -1,15 +1,14 @@
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk
+import sv_ttk
 from core.timer import PomodoroTimer
 from core.storage import save_tomato, get_today_count
 from ui.app_window import AppWindow
-from ui.widgets import RoundedCard, TimeAdjuster
+from ui.widgets import TimerCard, TimeAdjuster
 from ui.styles import (
-    BG_COLOR, SETTING_BG, BTN_START_BG, BTN_RESET_BG, TEXT_LIGHT, TEXT_DARK,
-    WORK_COLOR, BREAK_COLOR
+    BG_COLOR, ACCENT,
+    TEXT_PRIMARY, TEXT_SECONDARY, BREAK_COLOR, CARD_COLOR
 )
-from ui.animations import animate_color, pulse_text
-from ui.menu import PopupMenu
 from ui.settings_window import SettingsWindow
 from ui.history_window import HistoryWindow
 
@@ -22,32 +21,41 @@ class PomodoroApp:
         self.short_var = tk.IntVar(value=self.timer.short_break)
         self.long_var = tk.IntVar(value=self.timer.long_break)
 
+        # 应用 sv-ttk 主题（Windows 11 风格）
+        sv_ttk.set_theme("light")
+
+        # 配置自定义 ttk 样式
+        self._setup_styles()
+
         self._build_ui()
-        self._add_menu_button()
+        self._build_menu()
         self._update_counter_label()
 
-    # ---------- 菜单 ----------
-    def _add_menu_button(self):
-        """在标题栏左侧添加菜单按钮 ☰"""
-        self.menu_btn_id = self.window.title_canvas.create_text(
-            40, 20, anchor="w", text="☰",
-            font=("Helvetica", 14), fill=TEXT_DARK)
-        self.window.title_canvas.tag_bind(self.menu_btn_id, "<Button-1>", self._show_menu)
-        # 把标题文字右移，避免和菜单重叠
-        self.window.title_canvas.coords(self.window.title_text_id, 70, 20)
+    def _setup_styles(self):
+        style = ttk.Style()
+        style.configure("Primary.TButton",
+                        font=("Segoe UI", 12, "bold"),
+                        padding=(32, 10))
+        style.configure("Secondary.TButton",
+                        font=("Segoe UI", 12),
+                        padding=(32, 10))
 
-    def _show_menu(self, event=None):
-        items = [
-            ("系统设置", self._open_settings),
-            ("历史记录", self._open_history),
-        ]
-        PopupMenu(self.window, items)
+    # ---------- 菜单 ----------
+    def _build_menu(self):
+        menubar = tk.Menu(self.window, font=("Segoe UI", 10), bg=CARD_COLOR, fg=TEXT_PRIMARY)
+        self.window.config(menu=menubar)
+
+        file_menu = tk.Menu(menubar, tearoff=0, font=("Segoe UI", 10), bg=CARD_COLOR, fg=TEXT_PRIMARY)
+        file_menu.add_command(label="⚙ 系统设置", command=self._open_settings)
+        file_menu.add_command(label="📊 历史记录", command=self._open_history)
+        file_menu.add_separator()
+        file_menu.add_command(label="✕ 退出", command=self.window.destroy)
+        menubar.add_cascade(label="🍅 番茄钟", menu=file_menu)
 
     def _open_settings(self):
         SettingsWindow(self.window, self.timer, self._on_settings_applied)
 
     def _on_settings_applied(self):
-        # 设置应用后刷新界面变量和计时器
         self.work_var.set(self.timer.work_min)
         self.short_var.set(self.timer.short_break)
         self.long_var.set(self.timer.long_break)
@@ -58,53 +66,57 @@ class PomodoroApp:
 
     # ---------- UI 构建 ----------
     def _build_ui(self):
-        # 时间调节区
-        setting_frame = tk.Frame(self.window, bg=SETTING_BG, highlightbackground="#ddd", highlightthickness=1)
-        setting_frame.pack(pady=(12, 0), padx=30, fill="x")
+        # 主容器
+        main = tk.Frame(self.window, bg=BG_COLOR)
+        main.pack(fill="both", expand=True, padx=32, pady=(16, 24))
 
-        self.work_adj = TimeAdjuster(setting_frame, "🔴 工作 (分)", self.work_var, "work", self._on_adjust_time)
-        self.work_adj.pack(side="left", expand=True, pady=5)
-        self.short_adj = TimeAdjuster(setting_frame, "🟢 短休息", self.short_var, "short", self._on_adjust_time)
-        self.short_adj.pack(side="left", expand=True, pady=5)
-        self.long_adj = TimeAdjuster(setting_frame, "🔵 长休息", self.long_var, "long", self._on_adjust_time)
-        self.long_adj.pack(side="left", expand=True, pady=5)
+        # ── 时间调节区 ──
+        setting_frame = tk.Frame(main, bg=CARD_COLOR,
+                                 highlightbackground="#e0e0e0", highlightthickness=1)
+        setting_frame.pack(pady=(0, 20), fill="x", ipady=4)
 
-        # 圆角计时卡片
-        self.card = RoundedCard(self.window, width=400, height=180)
-        self.card.pack(pady=20, padx=30, fill="both")
-        self.card.set_text("25:00", WORK_COLOR)
+        self.work_adj = TimeAdjuster(setting_frame, "工作 (分)", self.work_var, "work", self._on_adjust_time)
+        self.work_adj.pack(side="left", expand=True, pady=6)
+        self.short_adj = TimeAdjuster(setting_frame, "短休息", self.short_var, "short", self._on_adjust_time)
+        self.short_adj.pack(side="left", expand=True, pady=6)
+        self.long_adj = TimeAdjuster(setting_frame, "长休息", self.long_var, "long", self._on_adjust_time)
+        self.long_adj.pack(side="left", expand=True, pady=6)
 
-        # 按钮区域
-        btn_frame = tk.Frame(self.window, bg=BG_COLOR)
-        btn_frame.pack(pady=10)
+        # ── 计时卡片 ──
+        self.card = TimerCard(main)
+        self.card.pack(fill="both", expand=True)
+        self.card.set_time("25:00", ACCENT)
 
-        style = ttk.Style()
-        style.theme_use("clam")
-        style.configure("Start.TButton", background=BTN_START_BG, foreground=TEXT_DARK,
-                        borderwidth=0, focusthickness=0, font=("Helvetica", 13, "bold"), padding=(24, 10))
-        style.map("Start.TButton", background=[("active", "#f4a261"), ("pressed", "#e76f51")])
-        style.configure("Reset.TButton", background=BTN_RESET_BG, foreground="white",
-                        borderwidth=0, focusthickness=0, font=("Helvetica", 13, "bold"), padding=(24, 10))
-        style.map("Reset.TButton", background=[("active", "#e76f51"), ("pressed", "#d62828")])
+        # ── 按钮区域 ──
+        btn_frame = tk.Frame(main, bg=BG_COLOR)
+        btn_frame.pack(pady=(20, 0))
 
-        self.start_btn = ttk.Button(btn_frame, text="▶ 开始工作", style="Start.TButton", command=self._start_pause)
-        self.start_btn.grid(row=0, column=0, padx=12)
-        self.reset_btn = ttk.Button(btn_frame, text="↺ 重置", style="Reset.TButton", command=self._reset)
-        self.reset_btn.grid(row=0, column=1, padx=12)
+        self.start_btn = ttk.Button(
+            btn_frame, text="▶ 开始专注",
+            style="Primary.TButton",
+            command=self._start_pause
+        )
+        self.start_btn.pack(side="left", padx=6)
 
-        # 统计区
-        counter_frame = tk.Frame(self.window, bg=BG_COLOR)
-        counter_frame.pack(pady=18)
-        self.counter_label = tk.Label(counter_frame, text="", font=("Helvetica", 12), fg=TEXT_LIGHT, bg=BG_COLOR)
+        self.reset_btn = ttk.Button(
+            btn_frame, text="↻ 重置",
+            style="Secondary.TButton",
+            command=self._reset
+        )
+        self.reset_btn.pack(side="left", padx=6)
+
+        # ── 统计区 ──
+        counter_frame = tk.Frame(main, bg=BG_COLOR)
+        counter_frame.pack(pady=(16, 0))
+        self.counter_label = tk.Label(
+            counter_frame, text="",
+            font=("Segoe UI", 11), fg=TEXT_SECONDARY, bg=BG_COLOR
+        )
         self.counter_label.pack()
-
-        tip = tk.Label(self.window, text="拖动顶部移动窗口  ·  点击 ✕ 关闭", font=("Helvetica", 9), fg=TEXT_LIGHT, bg=BG_COLOR)
-        tip.pack(side="bottom", pady=10)
 
     # ---------- 交互逻辑 ----------
     def _on_adjust_time(self, time_type, value):
         if self.timer.running:
-            messagebox.showwarning("提示", "请先暂停或重置计时再调整时间")
             return
         if time_type == "work":
             self.timer.work_min = value
@@ -114,29 +126,26 @@ class PomodoroApp:
             self.timer.long_break = value
         self.timer.reset()
         new_text = f"{value:02d}:00"
-        self.card.set_text(new_text, WORK_COLOR)
-        self._animate_pulse()
+        self.card.set_time(new_text, ACCENT)
         self._update_button_text()
 
     def _start_pause(self):
         self.timer.start_pause(self.window, self._on_update, self._on_finish)
-        self._animate_pulse()
         self._update_button_text()
 
     def _reset(self):
         self.timer.reset()
-        self.card.set_text(f"{self.timer.work_min:02d}:00", WORK_COLOR)
-        self._animate_pulse()
+        self.card.set_time(f"{self.timer.work_min:02d}:00", ACCENT)
+        self.card.set_status("点击下方按钮开始专注")
         self._update_button_text()
 
     def _on_update(self, text, color):
-        self.card.set_text(text, color)
+        self.card.set_time(text, color)
 
     def _on_finish(self, event_type):
         if event_type == "work_done":
             save_tomato()
             self._update_counter_label()
-            messagebox.showinfo("🍅 完成", "一个番茄时间结束，休息一下吧！")
             if self.timer.tomato_count % 4 == 0:
                 self.timer.is_break = True
                 self.timer.remaining = self.timer.long_break * 60
@@ -146,40 +155,31 @@ class PomodoroApp:
             self.timer.running = False
             new_color = BREAK_COLOR
             new_text = f"{self.timer.remaining // 60:02d}:00"
+            self.card.set_status("☕ 休息时间，放松一下吧")
         else:
-            messagebox.showinfo("☕ 休息结束", "休息结束，开始新的番茄！")
             self.timer.is_break = False
             self.timer.remaining = self.timer.work_min * 60
             self.timer.running = False
-            new_color = WORK_COLOR
+            new_color = ACCENT
             new_text = f"{self.timer.work_min:02d}:00"
+            self.card.set_status("开始新的番茄时间！")
 
-        old_color = self.card.itemcget(self.card.timer_text_id, "fill")
-        self.card.set_text(new_text, old_color)
-        self._animate_pulse()
-        if old_color != new_color:
-            animate_color(self.card, self.card.timer_text_id, old_color, new_color, steps=8, interval=30)
-        else:
-            self.card.itemconfig(self.card.timer_text_id, fill=new_color)
+        self.card.set_time(new_text, new_color)
         self._update_button_text()
-
-    def _animate_pulse(self):
-        if self.card.timer_text_id:
-            pulse_text(self.card, self.card.timer_text_id, ("Helvetica", 58, "bold"),
-                       scale_min=0.92, duration=120)
 
     def _update_button_text(self):
         if self.timer.running:
             self.start_btn.config(text="⏸ 暂停")
+            self.card.set_status("专注中...")
         else:
             if self.timer.is_break:
-                self.start_btn.config(text="☕ 开始休息")
+                self.start_btn.config(text="▶ 开始休息")
             else:
-                self.start_btn.config(text="▶ 开始工作")
+                self.start_btn.config(text="▶ 开始专注")
 
     def _update_counter_label(self):
         count = get_today_count()
-        self.counter_label.config(text=f"今日番茄 🍅 × {count}")
+        self.counter_label.config(text=f"今日完成 🍅 × {count}")
 
     def run(self):
         self.window.mainloop()
