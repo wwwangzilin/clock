@@ -20,10 +20,20 @@ class AppWindow(tk.Tk):
     def _create_title_bar(self):
         self.title_canvas = tk.Canvas(self, bg=BG_COLOR, height=40, highlightthickness=0)
         self.title_canvas.pack(fill="x")
-        # 圆角背景
-        self._draw_title_bg()
-        self.title_canvas.create_text(20, 20, anchor="w", text="🍅 番茄钟",
-                                      font=("Helvetica", 12, "bold"), fill=TEXT_DARK)
+
+        # 圆角标题栏背景
+        w = WINDOW_WIDTH
+        r = 18
+        self.title_canvas.create_polygon(
+            r, 4, w - r, 4, w - 4, r, w - 4, 36 - r,
+            w - r, 36, r, 36, 4, 36 - r, 4, r,
+            fill=TITLE_BG, outline="", smooth=True)
+
+        # 标题文字（保存 ID，方便后续调整位置）
+        self.title_text_id = self.title_canvas.create_text(
+            20, 20, anchor="w", text="🍅 番茄钟",
+            font=("Helvetica", 12, "bold"), fill=TEXT_DARK)
+
         # 关闭按钮
         self.close_btn_id = self.title_canvas.create_text(
             WINDOW_WIDTH - 20, 20, anchor="e", text="✕",
@@ -33,15 +43,6 @@ class AppWindow(tk.Tk):
         self.title_canvas.tag_bind(self.close_btn_id, "<Leave>",
                                    lambda e: self.title_canvas.itemconfig(self.close_btn_id, fill=TEXT_DARK))
         self.title_canvas.tag_bind(self.close_btn_id, "<Button-1>", lambda e: self.destroy())
-
-    def _draw_title_bg(self):
-        # 简单圆角矩形（因窗口宽度固定，可直接绘制）
-        w = WINDOW_WIDTH
-        r = 18
-        self.title_canvas.create_polygon(
-            r, 4, w - r, 4, w - 4, r, w - 4, 36 - r,
-            w - r, 36, r, 36, 4, 36 - r, 4, r,
-            fill=TITLE_BG, outline="", smooth=True)
 
     def _bind_drag(self):
         self.title_canvas.bind("<Button-1>", self._start_move)

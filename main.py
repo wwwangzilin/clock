@@ -8,20 +8,55 @@ from ui.styles import (
     BG_COLOR, SETTING_BG, BTN_START_BG, BTN_RESET_BG, TEXT_LIGHT, TEXT_DARK,
     WORK_COLOR, BREAK_COLOR
 )
+from ui.animations import animate_color, pulse_text
+from ui.menu import PopupMenu
+from ui.settings_window import SettingsWindow
+from ui.history_window import HistoryWindow
 
 class PomodoroApp:
     def __init__(self):
         self.window = AppWindow()
         self.timer = PomodoroTimer()
 
-        # 调节变量
         self.work_var = tk.IntVar(value=self.timer.work_min)
         self.short_var = tk.IntVar(value=self.timer.short_break)
         self.long_var = tk.IntVar(value=self.timer.long_break)
 
         self._build_ui()
+        self._add_menu_button()
         self._update_counter_label()
 
+    # ---------- 菜单 ----------
+    def _add_menu_button(self):
+        """在标题栏左侧添加菜单按钮 ☰"""
+        self.menu_btn_id = self.window.title_canvas.create_text(
+            40, 20, anchor="w", text="☰",
+            font=("Helvetica", 14), fill=TEXT_DARK)
+        self.window.title_canvas.tag_bind(self.menu_btn_id, "<Button-1>", self._show_menu)
+        # 把标题文字右移，避免和菜单重叠
+        self.window.title_canvas.coords(self.window.title_text_id, 70, 20)
+
+    def _show_menu(self, event=None):
+        items = [
+            ("系统设置", self._open_settings),
+            ("历史记录", self._open_history),
+        ]
+        PopupMenu(self.window, items)
+
+    def _open_settings(self):
+        SettingsWindow(self.window, self.timer, self._on_settings_applied)
+
+    def _on_settings_applied(self):
+        # 设置应用后刷新界面变量和计时器
+        self.work_var.set(self.timer.work_min)
+        self.short_var.set(self.timer.short_break)
+        self.long_var.set(self.timer.long_break)
+        self._reset()
+
+    def _open_history(self):
+        HistoryWindow(self.window)
+
+    # ---------- UI 构建 ----------
     def _build_ui(self):
         # 时间调节区
         setting_frame = tk.Frame(self.window, bg=SETTING_BG, highlightbackground="#ddd", highlightthickness=1)
@@ -66,11 +101,11 @@ class PomodoroApp:
         tip = tk.Label(self.window, text="拖动顶部移动窗口  ·  点击 ✕ 关闭", font=("Helvetica", 9), fg=TEXT_LIGHT, bg=BG_COLOR)
         tip.pack(side="bottom", pady=10)
 
+    # ---------- 交互逻辑 ----------
     def _on_adjust_time(self, time_type, value):
         if self.timer.running:
             messagebox.showwarning("提示", "请先暂停或重置计时再调整时间")
             return
-        # 更新核心时长
         if time_type == "work":
             self.timer.work_min = value
         elif time_type == "short":
@@ -78,16 +113,20 @@ class PomodoroApp:
         else:
             self.timer.long_break = value
         self.timer.reset()
-        self.card.set_text("25:00" if time_type != "work" else f"{value:02d}:00", WORK_COLOR)
+        new_text = f"{value:02d}:00"
+        self.card.set_text(new_text, WORK_COLOR)
+        self._animate_pulse()
         self._update_button_text()
 
     def _start_pause(self):
         self.timer.start_pause(self.window, self._on_update, self._on_finish)
+        self._animate_pulse()
         self._update_button_text()
 
     def _reset(self):
         self.timer.reset()
         self.card.set_text(f"{self.timer.work_min:02d}:00", WORK_COLOR)
+        self._animate_pulse()
         self._update_button_text()
 
     def _on_update(self, text, color):
@@ -98,7 +137,6 @@ class PomodoroApp:
             save_tomato()
             self._update_counter_label()
             messagebox.showinfo("🍅 完成", "一个番茄时间结束，休息一下吧！")
-            # 自动进入休息
             if self.timer.tomato_count % 4 == 0:
                 self.timer.is_break = True
                 self.timer.remaining = self.timer.long_break * 60
@@ -106,14 +144,29 @@ class PomodoroApp:
                 self.timer.is_break = True
                 self.timer.remaining = self.timer.short_break * 60
             self.timer.running = False
-            self.card.set_text(f"{self.timer.remaining // 60:02d}:00", BREAK_COLOR)
-        else:  # break_done
+            new_color = BREAK_COLOR
+            new_text = f"{self.timer.remaining // 60:02d}:00"
+        else:
             messagebox.showinfo("☕ 休息结束", "休息结束，开始新的番茄！")
             self.timer.is_break = False
             self.timer.remaining = self.timer.work_min * 60
             self.timer.running = False
-            self.card.set_text(f"{self.timer.work_min:02d}:00", WORK_COLOR)
+            new_color = WORK_COLOR
+            new_text = f"{self.timer.work_min:02d}:00"
+
+        old_color = self.card.itemcget(self.card.timer_text_id, "fill")
+        self.card.set_text(new_text, old_color)
+        self._animate_pulse()
+        if old_color != new_color:
+            animate_color(self.card, self.card.timer_text_id, old_color, new_color, steps=8, interval=30)
+        else:
+            self.card.itemconfig(self.card.timer_text_id, fill=new_color)
         self._update_button_text()
+
+    def _animate_pulse(self):
+        if self.card.timer_text_id:
+            pulse_text(self.card, self.card.timer_text_id, ("Helvetica", 58, "bold"),
+                       scale_min=0.92, duration=120)
 
     def _update_button_text(self):
         if self.timer.running:
