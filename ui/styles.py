@@ -1,0 +1,16 @@
+# 全局配色和尺寸
+BG_COLOR = "#faf3e0"
+TITLE_BG = "#e9dbbd"
+CARD_COLOR = "#ffffff"
+WORK_COLOR = "#e76f51"
+BREAK_COLOR = "#2a9d8f"
+TEXT_DARK = "#264653"
+TEXT_LIGHT = "#6c757d"
+BTN_START_BG = "#e9c46a"
+BTN_RESET_BG = "#f4a261"
+SETTING_BG = "#f0e6d2"
+
+FONT_NAME = "Helvetica"
+WINDOW_WIDTH = 460
+WINDOW_HEIGHT = 540
+CARD_RADIUS = 30
