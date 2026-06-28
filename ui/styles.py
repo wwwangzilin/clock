@@ -28,3 +28,23 @@ FONT_NAME_BOLD = "Segoe UI"
 WINDOW_WIDTH = 480
 WINDOW_HEIGHT = 560
 CARD_RADIUS = 12
+
+
+# ── DPI 缩放 ──
+import ctypes
+
+def get_dpi_scale():
+    """获取当前屏幕 DPI 缩放比例（1.0 = 100%）"""
+    try:
+        hwnd = ctypes.windll.user32.GetDesktopWindow()
+        dc = ctypes.windll.user32.GetDC(hwnd)
+        dpi = ctypes.windll.gdi32.GetDeviceCaps(dc, 88)  # LOGPIXELSX
+        ctypes.windll.user32.ReleaseDC(hwnd, dc)
+        return dpi / 96.0
+    except Exception:
+        return 1.0
+
+
+def scale_size(size):
+    """根据 DPI 缩放尺寸"""
+    return int(size * get_dpi_scale())

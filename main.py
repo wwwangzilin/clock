@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
+import ctypes
 import sv_ttk
 from core.timer import PomodoroTimer
 from core.storage import save_tomato, get_today_count
@@ -11,6 +12,19 @@ from ui.styles import (
 )
 from ui.settings_window import SettingsWindow
 from ui.history_window import HistoryWindow
+from ui.animations import fade_update_time
+
+# ── Windows 高 DPI 感知（必须在创建任何窗口前调用）──
+try:
+    ctypes.windll.shcore.SetProcessDpiAwareness(2)      # Per-Monitor V2
+except Exception:
+    try:
+        ctypes.windll.shcore.SetProcessDpiAwareness(1)  # Per-Monitor
+    except Exception:
+        try:
+            ctypes.windll.user32.SetProcessDPIAware()   # System DPI
+        except Exception:
+            pass
 
 class PomodoroApp:
     def __init__(self):
@@ -87,6 +101,9 @@ class PomodoroApp:
         self.card.pack(fill="both", expand=True)
         self.card.set_time("25:00", ACCENT)
 
+        # 渐入渐出动画状态追踪
+        self._fade_cancel = None
+
         # ── 按钮区域 ──
         btn_frame = tk.Frame(main, bg=BG_COLOR)
         btn_frame.pack(pady=(20, 0))
@@ -140,7 +157,18 @@ class PomodoroApp:
         self._update_button_text()
 
     def _on_update(self, text, color):
-        self.card.set_time(text, color)
+        # 取消上一次未完成的动画
+        if self._fade_cancel:
+            self._fade_cancel()
+        # 使用 styles 定义色（忽略 timer.py 传来的硬编码色）
+        actual_color = BREAK_COLOR if self.timer.is_break else ACCENT
+        # 渐入渐出动画更新数字
+        self._fade_cancel = fade_update_time(
+            self.card.time_label, text, actual_color,
+            bg_color=CARD_COLOR,
+            fade_steps=12,
+            fade_interval=16,
+        )
 
     def _on_finish(self, event_type):
         if event_type == "work_done":
@@ -164,7 +192,15 @@ class PomodoroApp:
             new_text = f"{self.timer.work_min:02d}:00"
             self.card.set_status("开始新的番茄时间！")
 
-        self.card.set_time(new_text, new_color)
+        # 取消上一次动画，用渐入渐出更新完成后的时间
+        if self._fade_cancel:
+            self._fade_cancel()
+        self._fade_cancel = fade_update_time(
+            self.card.time_label, new_text, new_color,
+            bg_color=CARD_COLOR,
+            fade_steps=15,
+            fade_interval=16,
+        )
         self._update_button_text()
 
     def _update_button_text(self):
